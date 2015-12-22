@@ -24,10 +24,20 @@ define('mongo_user', default=None, help="mongo username")
 define('mongo_password', default=None, help='mongo password')
 
 
+class Admin(Document):
+    pass
+
+
+class Token(Document):
+    """ API授权令牌 """
+    app_key = StringField(required=True, help_text="public key")
+    app_secret = StringField(required=True, help_text="private key")
+
+
 class BaseConfig(Document):
     """ 配置基类 """
     meta = {
-        'allow_inherit': True
+        'allow_inheritance': True
     }
 
     namespace = StringField(required=True, unique=True, help_text="命名空间")
@@ -76,7 +86,7 @@ class MsgDetail(web.RequestHandler):
     def put(self):
         pass
 
-    def delte(self):
+    def delete(self):
         pass
 
 
@@ -87,14 +97,19 @@ class CheckConfig(web.RequestHandler):
         pass
 
 
-def main():
+class HelloWorld(web.RequestHandler):
+
+    def get(self):
+        self.write("Hello world")
+
+
+def make_application():
     parse_command_line()
 
-    connect(host=options.mongo_host, port=options.mongo_port,
-            dbname=options.mongo_db, user=options.mongo_user,
-            password=options.mongo_password)
+    connect(db=options.mongo_db, host=options.mongo_host, port=options.mongo_port)
 
     application = web.Application([
+        ('/', HelloWorld),
         ('/configs', ConfigList),
         ('/configs/(.+)', ConfigDetail),
         ('/messages', MsgList),
@@ -102,6 +117,11 @@ def main():
         ('/check', CheckConfig),
     ], debug=options.debug)
 
+    return application
+
+
+def main():
+    application = make_application()
     application.listen(options.port)
 
     IOLoop.instance().start()
